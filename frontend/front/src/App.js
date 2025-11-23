@@ -32,6 +32,7 @@ import Messaging from './components/Messaging';
 import MessagingPage from './components/MessagingPage';
 import BibliotequePage from './components/BibliotequePage';
 import ScolaritePage from './components/ScolaritePage';
+import MesAbsences from './components/Etudiant/MesAbsences';
 
 import "./App.css";
 
@@ -39,8 +40,18 @@ import "./App.css";
 const ProtectedRoute = ({ children, requiredRole, allowedRoles }) => {
   const { user, isAuthenticated, loading } = useAuth();
 
+  console.log('🛡️ ProtectedRoute Check:', {
+    loading,
+    isAuthenticated,
+    userRole: user?.role,
+    requiredRole,
+    allowedRoles,
+    userName: user?.prenom + ' ' + user?.nom
+  });
+
   // Afficher un loader pendant la vérification de l'authentification
   if (loading) {
+    console.log('⏳ Loading authentication...');
     return (
       <div style={{
         display: 'flex',
@@ -56,17 +67,21 @@ const ProtectedRoute = ({ children, requiredRole, allowedRoles }) => {
   }
 
   if (!isAuthenticated) {
+    console.log('❌ Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   if (requiredRole && user?.role !== requiredRole) {
+    console.log('❌ Role mismatch (required):', requiredRole, 'vs', user?.role);
     return <Navigate to="/director-dashboard" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    console.log('❌ Role not in allowed list:', user?.role, 'allowed:', allowedRoles);
     return <Navigate to="/director-dashboard" replace />;
   }
 
+  console.log('✅ Access granted!');
   return children;
 };
 
@@ -90,7 +105,7 @@ function App() {
             <Route
               path="/admin-dashboard"
               element={
-                <ProtectedRoute allowedRoles={["administratif"]}>
+                <ProtectedRoute allowedRoles={["administratif", "admin"]}>
                   <AdministrativeDashboard />
                 </ProtectedRoute>
               }
@@ -153,6 +168,14 @@ function App() {
                 }
               />
               <Route
+                path="/mes-absences"
+                element={
+                  <ProtectedRoute allowedRoles={["etudiant"]}>
+                    <MesAbsences />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/bibliotheque"
                 element={
                   <ProtectedRoute allowedRoles={["etudiant"]}>
@@ -174,7 +197,7 @@ function App() {
             <Route
               path="/messagerie"
               element={
-                <ProtectedRoute allowedRoles={["etudiant", "enseignant", "directeur_departement", "administratif"]}>
+                <ProtectedRoute allowedRoles={["etudiant", "enseignant", "directeur_departement", "administratif", "admin"]}>
                   <MessagingPage />
                 </ProtectedRoute>
               }
@@ -182,7 +205,7 @@ function App() {
             <Route
               path="/my-schedule"
               element={
-                <ProtectedRoute allowedRoles={["etudiant", "enseignant", "directeur_departement"]}>
+                <ProtectedRoute allowedRoles={["etudiant", "enseignant", "directeur_departement", "admin"]}>
                   <MySchedule />
                 </ProtectedRoute>
               }
@@ -206,7 +229,7 @@ function App() {
             <Route
               path="/schedule-viewer"
               element={
-                <ProtectedRoute allowedRoles={["directeur_departement"]}>
+                <ProtectedRoute allowedRoles={["directeur_departement", "admin"]}>
                   <ScheduleViewer />
                 </ProtectedRoute>
               }

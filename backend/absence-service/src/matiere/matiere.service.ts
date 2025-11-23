@@ -17,10 +17,22 @@ export class MatiereService {
   }
 
   async isTeacherOfMatiere(matiereId: number, enseignantId: number): Promise<boolean> {
-    const matiere = await this.matiereRepo.findOne({ where: { id: matiereId } });
+    const matiere = await this.matiereRepo.findOne({ 
+      where: { id: matiereId },
+      relations: ['enseignants']
+    });
     if (!matiere) throw new NotFoundException(`Matière #${matiereId} non trouvée`);
-    // 'enseignants' is eager-loaded in the entity, so the relation should be present
+    
+    console.log('🔍 Validation matière-enseignant:', {
+      matiereId,
+      enseignantId,
+      enseignants: (matiere as any).enseignants?.map((e: any) => ({ id: e.id, nom: e.nom }))
+    });
+    
     const enseignants = (matiere as any).enseignants || [];
-    return enseignants.some((e: any) => Number(e.id) === Number(enseignantId));
+    const isValid = enseignants.some((e: any) => Number(e.id) === Number(enseignantId));
+    console.log('  ✅ Résultat validation:', isValid);
+    
+    return isValid;
   }
 }

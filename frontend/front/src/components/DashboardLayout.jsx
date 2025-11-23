@@ -44,6 +44,12 @@ const DashboardLayout = () => {
       path: "/statistiques"
     },
     { 
+      label: "Mes Absences", 
+      description: "Consulter mes absences",
+      icon: "🕐",
+      path: "/mes-absences"
+    },
+    { 
       label: "Messagerie", 
       description: "Messages et notifications",
       icon: "✉️",

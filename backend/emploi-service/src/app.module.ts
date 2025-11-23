@@ -17,8 +17,8 @@ import { join } from 'path';
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USER || process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASS || process.env.DB_PASSWORD || '0000',
-      database: process.env.DB_NAME || 'university_db_2',
+      password: process.env.DB_PASS || process.env.DB_PASSWORD || 'postgres',
+      database: process.env.DB_NAME || 'university_db',
       autoLoadEntities: true,
       // keep synchronize during local development; set to false for production/migrations
       synchronize: process.env.TYPEORM_SYNC === 'true' || true,
