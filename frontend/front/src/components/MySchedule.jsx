@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { scheduleService } from '../services/scheduleService';
+import MarquerAbsences from './Enseignant/MarquerAbsences';
 // Import limité: on évite styles globaux potentiels de layout/sidebar
 import './ScheduleViewer.css';
 
@@ -11,6 +12,8 @@ const MySchedule = () => {
   const [semestre, setSemestre] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showMarquerAbsences, setShowMarquerAbsences] = useState(false);
+  const [selectedSeance, setSelectedSeance] = useState(null);
 
   // Créneaux horaires standards
   const timeSlots = [
@@ -204,17 +207,44 @@ const MySchedule = () => {
                           </div>
                         )}
                         {(user.role === 'enseignant' || user.role === 'directeur_departement') && (
-                          <div className="course-class">
-                            🎓 {(() => {
-                              const course = schedule[day][timeSlot];
-                              if (typeof course.classe === 'object' && course.classe?.nom) {
-                                return course.classe.nom;
-                              } else if (typeof course.classe === 'string') {
-                                return course.classe;
-                              }
-                              return 'Classe';
-                            })()}
-                          </div>
+                          <>
+                            <div className="course-class">
+                              🎓 {(() => {
+                                const course = schedule[day][timeSlot];
+                                if (typeof course.classe === 'object' && course.classe?.nom) {
+                                  return course.classe.nom;
+                                } else if (typeof course.classe === 'string') {
+                                  return course.classe;
+                                }
+                                return 'Classe';
+                              })()}
+                            </div>
+                            <button
+                              onClick={() => {
+                                const course = schedule[day][timeSlot];
+                                setSelectedSeance({
+                                  ...course,
+                                  day,
+                                  timeSlot,
+                                  date: new Date().toISOString().split('T')[0]
+                                });
+                                setShowMarquerAbsences(true);
+                              }}
+                              style={{
+                                marginTop: '8px',
+                                padding: '4px 8px',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                              }}
+                            >
+                              ✓ Faire l'appel
+                            </button>
+                          </>
                         )}
                         <div className="course-room">
                           🏢 {(() => {
@@ -237,6 +267,67 @@ const MySchedule = () => {
                 ))}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal pour marquer les absences */}
+      {showMarquerAbsences && selectedSeance && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            maxWidth: '900px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            position: 'relative'
+          }}>
+            <button
+              onClick={() => {
+                setShowMarquerAbsences(false);
+                setSelectedSeance(null);
+              }}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                cursor: 'pointer',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                zIndex: 1001
+              }}
+            >
+              ×
+            </button>
+            <MarquerAbsences
+              seanceId={selectedSeance.id}
+              classeId={typeof selectedSeance.classe === 'object' ? selectedSeance.classe?.id : null}
+              matiereId={typeof selectedSeance.matiere === 'object' ? selectedSeance.matiere?.id : null}
+              classeNom={typeof selectedSeance.classe === 'object' ? selectedSeance.classe?.nom : selectedSeance.classe}
+              matiereNom={typeof selectedSeance.matiere === 'object' ? selectedSeance.matiere?.nom : selectedSeance.matiere}
+              seanceDate={selectedSeance.date}
+              heureDebut={selectedSeance.timeSlot?.split('-')[0]}
+              heureFin={selectedSeance.timeSlot?.split('-')[1]}
+              token={localStorage.getItem('token')}
+            />
           </div>
         </div>
       )}

@@ -19,7 +19,7 @@ export class AbsenceController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('enseignant','etudiant','directeur')
+  @Roles('enseignant','etudiant','directeur','admin','administratif')
   async create(@Req() req, @Body() createDto: CreateAbsenceDto) {
     const user = req.user;
     // Students can submit an "excuse request" (sujet='etudiant').
@@ -37,16 +37,19 @@ export class AbsenceController {
       (createDto as any).reportedBy = Number(user.sub);
       (createDto as any).statut = StatutAbsence.EN_ATTENTE;
       // teachers should not create student absences via this flow
-    } else if (user.role === 'directeur') {
-      // director can create either type; accept provided values
+    } else if (user.role === 'directeur' || user.role === 'admin' || user.role === 'administratif') {
+      // director/admin can create either type; accept provided values
     } else {
       throw new ForbiddenException('Accès refusé');
     }
 
     // For teacher-submitted requests, verify they are teacher of the matiere
-    if ((createDto as any).sujet === 'enseignant') {
-      const ok = await this.matiereService.isTeacherOfMatiere(createDto.matiereId, Number(user.sub));
-      if (!ok) throw new ForbiddenException('Vous n\'enseignez pas cette matière');
+    // Skip validation for admin/directeur
+    if ((createDto as any).sujet === 'enseignant' && user.role === 'enseignant') {
+      if (createDto.matiereId) {
+        const ok = await this.matiereService.isTeacherOfMatiere(createDto.matiereId, Number(user.sub));
+        if (!ok) throw new ForbiddenException('Vous n\'enseignez pas cette matière');
+      }
     }
 
     return this.absenceService.create(createDto);
@@ -76,7 +79,7 @@ export class AbsenceController {
 
   @Get('etudiant/:etudiantId')
   @UseGuards(RolesGuard)
-  @Roles('etudiant', 'enseignant', 'directeur')
+  @Roles('etudiant', 'enseignant', 'directeur', 'admin', 'administratif')
   getAbsencesByEtudiant(@Req() req, @Param('etudiantId') etudiantId: string) {
     const user = req.user;
     const targetId = Number(etudiantId);
