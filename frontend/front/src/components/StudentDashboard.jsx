@@ -1,176 +1,220 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { User, Calendar, BookOpen, BarChart3, Mail, Library, FileText, X, Award, Clock, TrendingUp } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { User, Calendar, BookOpen, BarChart3, Mail, Library, FileText, Award, Clock, TrendingUp } from "lucide-react";
+import { useAuth } from '../contexts/AuthContext';
 
 const StudentDashboard = () => {
-  const navigate = useNavigate();
-  
-  const [user] = useState({
-    prenom: "Mohammed",
-    nom: "Ben Ali",
-    email: "mohammed.benali@enis.tn",
-    telephone: "+216 98 765 432",
-    departement: "Génie Informatique"
-  });
+  const { user } = useAuth();
 
-  const [currentPage] = useState("dashboard");
-  const [showProfile, setShowProfile] = useState(false);
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [profileData, setProfileData] = useState({
-    prenom: user?.prenom || "",
-    nom: user?.nom || "",
-    email: user?.email || "",
-    telephone: user?.telephone || "",
-    departement: user?.departement || "",
-  });
+  const [currentPage, setCurrentPage] = useState("dashboard");
+
+  useEffect(() => {
+    // Component mounted
+  }, []);
 
   const services = [
-    { 
-      label: "Tableau de bord", 
+    {
+      label: "Tableau de bord",
       action: "dashboard",
       description: "Vue d'ensemble",
       icon: TrendingUp,
       path: "/dashboard"
     },
-    { 
-      label: "Mon emploi du temps", 
+    {
+      label: "Mon emploi du temps",
       action: "viewSchedule",
       description: "Consulter mon planning",
       icon: Calendar,
       path: "/my-schedule"
     },
-    { 
-      label: "Mes notes", 
+    {
+      label: "Mes notes",
       action: "viewGrades",
       description: "Résultats et bulletins",
       icon: BookOpen,
       path: "/notes"
     },
-    { 
-      label: "Statistiques", 
+    {
+      label: "Statistiques",
       action: "statistics",
       description: "Analyse de performance",
       icon: BarChart3,
       path: "/statistiques"
     },
-    { 
-      label: "Messagerie", 
+    {
+      label: "Messagerie",
       action: "messaging",
-      description: "Messages et notifications",
+      description: "Communications",
       icon: Mail,
-      path: "/messagerie",
-      badge: "3"
+      path: "/messages"
     },
-    { 
-      label: "Bibliothèque", 
-      action: "library",
-      description: "Ressources pédagogiques",
+    {
+      label: "Ressources",
+      action: "resources",
+      description: "Documents et supports",
       icon: Library,
-      path: "/bibliotheque"
-    },
-    { 
-      label: "Scolarité", 
-      action: "scolarite",
-      description: "Documents administratifs",
-      icon: FileText,
-      path: "/scolarite"
-    },
+      path: "/resources"
+    }
   ];
 
-  const handleServiceClick = (service) => {
-    // Navigation vers la vraie page avec React Router
-    navigate(service.path);
-  };
-
-  const handleProfileUpdate = () => {
-    if (!profileData.prenom || !profileData.nom || !profileData.email) {
-      alert("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
-    alert("Profil mis à jour avec succès!");
-    setEditingProfile(false);
+  const getStatColorClasses = (color) => {
+    const colors = {
+      blue: "from-blue-500 to-blue-600",
+      green: "from-green-500 to-green-600",
+      purple: "from-purple-500 to-purple-600",
+      orange: "from-orange-500 to-orange-600"
+    };
+    return colors[color] || colors.blue;
   };
 
   // Composant pour afficher le contenu selon la page
   const PageContent = () => {
-    const stats = [
-      { 
-        label: "Mes cours", 
-        value: "6", 
-        color: "primary",
-        description: "Cours actifs",
-        icon: BookOpen,
-        trend: "+2 ce semestre"
-      },
-      { 
-        label: "Absences", 
-        value: "2", 
-        color: "yellow",
-        description: "Jours d'absence",
-        icon: Clock,
-        trend: "Bon suivi"
-      },
-      { 
-        label: "Crédits validés", 
-        value: "45/180", 
-        color: "primary",
-        description: "Progression",
-        icon: Award,
-        trend: "25% complété"
-      },
-    ];
-
-    switch(currentPage) {
+    switch (currentPage) {
       case "dashboard":
         return (
-          <div className="p-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                  <TrendingUp className="w-6 h-6 text-blue-600" />
-                  Vue d'ensemble
-                </h2>
-                <div className="text-sm text-gray-500">Dernière mise à jour: maintenant</div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {stats.map((stat, index) => {
-                  const IconComponent = stat.icon;
+          <div className="pt-3 pb-6">
+            <div className="max-w-7xl mx-auto space-y-4">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[
+                  {
+                    label: "Moyenne générale",
+                    value: "14.5",
+                    description: "Sur 20",
+                    color: "green",
+                    icon: TrendingUp
+                  },
+                  {
+                    label: "Crédits validés",
+                    value: "120/180",
+                    description: "66% complété",
+                    color: "blue",
+                    icon: BookOpen
+                  },
+                  {
+                    label: "Absences ce mois",
+                    value: "2",
+                    description: "Jours d'absence",
+                    color: "orange",
+                    icon: Clock
+                  },
+                  {
+                    label: "Messages non lus",
+                    value: "3",
+                    description: "À consulter",
+                    color: "purple",
+                    icon: Mail
+                  }
+                ].map((stat, index) => {
+                  const percentage = stat.label === "Moyenne générale" ? 72 : 
+                                   stat.label === "Crédits validés" ? 66 : 
+                                   stat.label === "Absences ce mois" ? 15 : 25;
+                  
                   return (
                     <div
                       key={index}
-                      className={`group bg-white rounded-2xl shadow-md hover:shadow-xl border-l-4 p-6 transition-all duration-300 hover:transform hover:-translate-y-1 ${
-                        stat.color === 'primary' ? 'border-blue-600' : 'border-yellow-500'
-                      }`}
+                      className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-lg transition-all group"
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className={`p-3 rounded-xl ${
-                          stat.color === 'primary' ? 'bg-blue-100' : 'bg-yellow-100'
-                        }`}>
-                          <IconComponent className={`w-6 h-6 ${
-                            stat.color === 'primary' ? 'text-blue-600' : 'text-yellow-600'
-                          }`} />
+                      {/* Header avec icône professionnelle */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getStatColorClasses(stat.color)} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
+                          <stat.icon className="text-white" size={18} />
                         </div>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                          stat.color === 'primary' 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {stat.trend}
-                        </span>
+                        <div className="flex items-center gap-1 text-xs font-semibold text-green-600">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                          </svg>
+                          +{stat.label === "Absences ce mois" ? "5%" : "12%"}
+                        </div>
                       </div>
-                      
-                      <div className="text-sm font-semibold text-gray-500 mb-2">{stat.label}</div>
-                      <div className="text-4xl font-bold text-gray-800 mb-2">{stat.value}</div>
-                      <div className="text-sm text-gray-600 flex items-center gap-1">
-                        <div className={`w-2 h-2 rounded-full ${
-                          stat.color === 'primary' ? 'bg-blue-600' : 'bg-yellow-500'
-                        }`}></div>
-                        {stat.description}
+
+                      {/* Valeur principale */}
+                      <div className="mb-3">
+                        <div className="text-sm font-medium text-gray-600 mb-1">{stat.label}</div>
+                        <div className="text-3xl font-bold text-gray-900 mb-1">
+                          {stat.value}
+                        </div>
+                        <div className="text-xs text-gray-500">{stat.description}</div>
+                      </div>
+
+                      {/* Barre de progression */}
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                          <span>Progression</span>
+                          <span className="font-semibold">{percentage}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full bg-gradient-to-r ${getStatColorClasses(stat.color)} transition-all duration-1000 rounded-full`}
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      {/* Mini graphique sparkline */}
+                      <div className="flex items-end justify-between h-6 gap-1">
+                        {[65, 70, 68, 75, 80, 78, 85, 90, 88, percentage].map((height, i) => (
+                          <div 
+                            key={i}
+                            className={`flex-1 bg-gradient-to-t ${getStatColorClasses(stat.color)} rounded-t opacity-30 hover:opacity-60 transition-all`}
+                            style={{ height: `${(height / 100) * 24}px` }}
+                          ></div>
+                        ))}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${getStatColorClasses(stat.color)}`}></div>
+                          Actif
+                        </span>
+                        <span>Mis à jour</span>
                       </div>
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Recent Activities */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Prochains cours</h3>
+                  <div className="space-y-3">
+                    {[
+                      { subject: "Algorithmique", time: "08:00 - 10:00", room: "Salle A101" },
+                      { subject: "Base de données", time: "10:30 - 12:30", room: "Salle B205" },
+                      { subject: "Réseaux", time: "14:00 - 16:00", room: "Salle C103" }
+                    ].map((course, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-800">{course.subject}</p>
+                          <p className="text-sm text-gray-600">{course.time} • {course.room}</p>
+                        </div>
+                        <Calendar className="w-5 h-5 text-blue-500" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Dernières notes</h3>
+                  <div className="space-y-3">
+                    {[
+                      { subject: "Mathématiques", grade: "15.5/20", date: "15 Déc" },
+                      { subject: "Physique", grade: "14.0/20", date: "12 Déc" },
+                      { subject: "Informatique", grade: "16.5/20", date: "10 Déc" }
+                    ].map((grade, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-800">{grade.subject}</p>
+                          <p className="text-sm text-gray-600">{grade.date}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-green-600">{grade.grade}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -180,48 +224,10 @@ const StudentDashboard = () => {
         return (
           <div className="p-6">
             <div className="max-w-7xl mx-auto">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-2">
-                  <Calendar className="w-6 h-6 text-blue-600" />
-                  Mon Emploi du Temps
-                </h2>
-                <p className="text-gray-600">Semaine du 18 au 24 Novembre 2024</p>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <div className="grid grid-cols-6 gap-4">
-                  <div className="font-semibold text-gray-700">Horaire</div>
-                  {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map(day => (
-                    <div key={day} className="font-semibold text-center text-gray-700">{day}</div>
-                  ))}
-                  
-                  {['08:00-10:00', '10:00-12:00', '14:00-16:00', '16:00-18:00'].map((time, idx) => (
-                    <React.Fragment key={time}>
-                      <div className="text-sm text-gray-600 py-4">{time}</div>
-                      {[1, 2, 3, 4, 5].map(day => (
-                        <div key={day} className={`p-3 rounded-lg ${
-                          (idx + day) % 3 === 0 
-                            ? 'bg-blue-100 border-l-4 border-blue-600' 
-                            : (idx + day) % 2 === 0
-                            ? 'bg-indigo-100 border-l-4 border-indigo-600'
-                            : 'bg-gray-50'
-                        }`}>
-                          {(idx + day) % 3 === 0 && (
-                            <div>
-                              <div className="font-semibold text-sm text-gray-800">Mathématiques</div>
-                              <div className="text-xs text-gray-600">Salle A101</div>
-                            </div>
-                          )}
-                          {(idx + day) % 2 === 0 && (idx + day) % 3 !== 0 && (
-                            <div>
-                              <div className="font-semibold text-sm text-gray-800">Programmation</div>
-                              <div className="text-xs text-gray-600">Lab B205</div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </React.Fragment>
-                  ))}
+              <div className="bg-white rounded-2xl shadow-lg p-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">Mon emploi du temps</h2>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-yellow-800">L'emploi du temps sera bientôt disponible.</p>
                 </div>
               </div>
             </div>
@@ -232,46 +238,41 @@ const StudentDashboard = () => {
         return (
           <div className="p-6">
             <div className="max-w-7xl mx-auto">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
-                <BookOpen className="w-6 h-6 text-blue-600" />
-                Mes Notes
-              </h2>
-
-              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-                    <tr>
-                      <th className="px-6 py-4 text-left">Matière</th>
-                      <th className="px-6 py-4 text-center">Note</th>
-                      <th className="px-6 py-4 text-center">Coefficient</th>
-                      <th className="px-6 py-4 text-center">Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { matiere: 'Mathématiques', note: 15.5, coef: 3, status: 'Validé' },
-                      { matiere: 'Programmation', note: 17, coef: 4, status: 'Validé' },
-                      { matiere: 'Base de données', note: 13, coef: 3, status: 'Validé' },
-                      { matiere: 'Réseaux', note: 14.5, coef: 2, status: 'Validé' },
-                      { matiere: 'Architecture', note: 16, coef: 3, status: 'Validé' },
-                    ].map((item, idx) => (
-                      <tr key={idx} className="border-b border-gray-100 hover:bg-blue-50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-gray-800">{item.matiere}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold">
-                            {item.note}/20
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center text-gray-600">{item.coef}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
-                            {item.status}
-                          </span>
-                        </td>
+              <div className="bg-white rounded-2xl shadow-lg p-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">Mes notes</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-800">Matière</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-800">Note</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-800">Coefficient</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-800">Date</th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-800">Statut</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {[
+                        { subject: "Algorithmique", grade: "15.5", coeff: "3", date: "15/12/2024", status: "Validé" },
+                        { subject: "Base de données", grade: "14.0", coeff: "2", date: "12/12/2024", status: "Validé" },
+                        { subject: "Réseaux", grade: "16.5", coeff: "3", date: "10/12/2024", status: "Validé" },
+                        { subject: "Mathématiques", grade: "13.5", coeff: "4", date: "08/12/2024", status: "En attente" }
+                      ].map((item, index) => (
+                        <tr key={index} className="border-b border-gray-100">
+                          <td className="py-3 px-4 text-gray-800">{item.subject}</td>
+                          <td className="py-3 px-4 text-gray-800 font-medium">{item.grade}/20</td>
+                          <td className="py-3 px-4 text-gray-800">{item.coeff}</td>
+                          <td className="py-3 px-4 text-gray-600">{item.date}</td>
+                          <td className="py-3 px-4">
+                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
+                              {item.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -284,7 +285,7 @@ const StudentDashboard = () => {
               <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                 <div className="mb-4">
                   <div className="inline-block p-4 bg-blue-100 rounded-full">
-                    {services.find(s => s.action === currentPage)?.icon && 
+                    {services.find(s => s.action === currentPage)?.icon &&
                       React.createElement(services.find(s => s.action === currentPage).icon, {
                         className: "w-12 h-12 text-blue-600"
                       })
@@ -309,170 +310,10 @@ const StudentDashboard = () => {
 
   return (
     <div className="h-full bg-gradient-to-br from-gray-50 to-blue-50 overflow-y-auto">
-      {/* Profile Modal */}
-      {showProfile && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn" onClick={() => setShowProfile(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full m-4 transform transition-all animate-slideUp" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <User className="w-6 h-6 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">Mon Profil</h3>
-              </div>
-              <button
-                onClick={() => setShowProfile(false)}
-                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="p-6">
-              {editingProfile ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Prénom <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData.prenom}
-                      onChange={(e) => setProfileData({ ...profileData, prenom: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="Votre prénom"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Nom <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData.nom}
-                      onChange={(e) => setProfileData({ ...profileData, nom: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="Votre nom"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="votre.email@exemple.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Téléphone</label>
-                    <input
-                      type="tel"
-                      value={profileData.telephone}
-                      onChange={(e) => setProfileData({ ...profileData, telephone: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="+216 XX XXX XXX"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Département</label>
-                    <input
-                      type="text"
-                      value={profileData.departement}
-                      onChange={(e) => setProfileData({ ...profileData, departement: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder="Votre département"
-                    />
-                  </div>
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      onClick={handleProfileUpdate}
-                      className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
-                    >
-                      Sauvegarder
-                    </button>
-                    <button
-                      onClick={() => setEditingProfile(false)}
-                      className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200 font-semibold"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex justify-between py-3 border-b border-gray-100">
-                    <span className="text-sm font-semibold text-gray-500">Prénom:</span>
-                    <span className="text-sm font-medium text-gray-800">{user?.prenom}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b border-gray-100">
-                    <span className="text-sm font-semibold text-gray-500">Nom:</span>
-                    <span className="text-sm font-medium text-gray-800">{user?.nom}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b border-gray-100">
-                    <span className="text-sm font-semibold text-gray-500">Email:</span>
-                    <span className="text-sm font-medium text-gray-800">{user?.email}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b border-gray-100">
-                    <span className="text-sm font-semibold text-gray-500">Téléphone:</span>
-                    <span className="text-sm font-medium text-gray-800">{user?.telephone || "Non spécifié"}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b border-gray-100">
-                    <span className="text-sm font-semibold text-gray-500">Département:</span>
-                    <span className="text-sm font-medium text-gray-800">{user?.departement || "Non spécifié"}</span>
-                  </div>
-                  <div className="flex justify-between py-3">
-                    <span className="text-sm font-semibold text-gray-500">Rôle:</span>
-                    <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 text-xs font-bold rounded-full">
-                      Étudiant
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setEditingProfile(true)}
-                    className="w-full mt-4 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
-                  >
-                    Modifier le profil
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Page Content - DashboardLayout fournit déjà la sidebar */}
       <main className="p-6">
         <PageContent />
       </main>
-
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        
-        @keyframes slideUp {
-          from { 
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to { 
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
-        }
-        
-        .animate-slideUp {
-          animation: slideUp 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

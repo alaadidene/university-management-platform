@@ -204,10 +204,13 @@ export const AuthProvider = ({ children }) => {
       if (typeof copy.departement.nom === 'string') {
         copy.departement_nom = copy.departement.nom; // garder référence
         copy.departementId = copy.departement.id;
-        copy.departement = copy.departement.nom; // flatten pour compatibilité
+        // Ne pas flatten - garder l'objet pour compatibilité avec le code existant
       } else {
         copy.departement = JSON.stringify(copy.departement);
       }
+    } else if (typeof copy.departement === 'string') {
+      // Si c'est déjà une string, la convertir en objet pour cohérence
+      copy.departement = { nom: copy.departement };
     }
     if (copy.specialite && typeof copy.specialite === 'object') {
       if (typeof copy.specialite.nom === 'string') {

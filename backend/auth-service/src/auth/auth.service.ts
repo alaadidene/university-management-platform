@@ -87,13 +87,18 @@ export class AuthService {
 
     // 2️⃣ Vérifier dans la table etudiant avec requête SQL brute
     const etudiantResult = await this.dataSource.query(
-      'SELECT * FROM etudiant WHERE email = $1 LIMIT 1',
+      `SELECT e.*, c.id as classeId, c.nom as "classeNom"
+       FROM etudiant e
+       LEFT JOIN classe c ON e."classeId" = c.id
+       WHERE e.email = $1 LIMIT 1`,
       [email]
     );
     
     if (etudiantResult && etudiantResult.length > 0) {
       const etudiant = etudiantResult[0];
       console.log('✅ [Login] Etudiant found:', etudiant.email);
+      console.log('🔍 [Login] Etudiant classeId:', etudiant.classeId, 'classeNom:', etudiant.classeNom);
+      console.log('🔍 [Login] Full etudiant object:', etudiant);
 
       if (!etudiant.password) {
         throw new UnauthorizedException('Compte non activé');
@@ -136,6 +141,7 @@ export class AuthService {
           nom: etudiant.nom,
           prenom: etudiant.prenom,
           cin: etudiant.cin,
+          classe: etudiant.classeNom ? { nom: etudiant.classeNom } : null,
         },
         token: access_token,
       };

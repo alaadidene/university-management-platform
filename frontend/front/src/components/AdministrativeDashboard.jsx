@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Users, BookOpen, Building2, UserCheck, FileText, Bell, Menu, X, TrendingUp, AlertCircle, Plus, Edit, Trash2, Search, Loader, LogOut, User, Mail, Send, Inbox, Archive } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { departementService, enseignantService, etudiantService, classeService, salleService, matiereService, specialiteService } from '../services/adminServices';
+import { departementService, enseignantService, etudiantService, classeService, salleService, matiereService, specialiteService, evenementService } from '../services/adminServices';
 import AddStudentModal from './AddStudentModal';
 import AddTeacherModal from './AddTeacherModal';
 import AddDepartmentModal from './AddDepartmentModal';
@@ -15,6 +15,8 @@ import AddSalleModal from './AddSalleModal';
 import EditSalleModal from './EditSalleModal';
 import AddMatiereModal from './AddMatiereModal';
 import EditMatiereModal from './EditMatiereModal';
+import AddEventModal from './AddEventModal';
+import EditEventModal from './EditEventModal';
 import { BarChart, PieChart, LineChart, StatCard } from './Charts';
 
 const AdminDashboard = () => {
@@ -86,6 +88,14 @@ const AdminDashboard = () => {
   const [showComposeModal, setShowComposeModal] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [messageFilter, setMessageFilter] = useState('all'); // all, received, sent
+
+  // États pour les événements
+  const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [showEditEventModal, setShowEditEventModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [eventSearchTerm, setEventSearchTerm] = useState('');
 
   // États pour le profil
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -184,6 +194,50 @@ const AdminDashboard = () => {
     }
   };
 
+  // Fonctions pour les événements
+  const loadEvents = async () => {
+    try {
+      setLoadingEvents(true);
+      const data = await evenementService.getAll();
+      setEvents(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des événements:', error);
+      setError('Erreur lors du chargement des événements');
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  const handleAddEvent = () => {
+    setShowAddEventModal(true);
+  };
+
+  const handleEditEvent = (event) => {
+    setSelectedEvent(event);
+    setShowEditEventModal(true);
+  };
+
+  const handleDeleteEvent = async (id) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) return;
+
+    try {
+      await evenementService.delete(id);
+      loadEvents();
+      addActivity('alert', 'Événement supprimé');
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      setError('Erreur lors de la suppression de l\'événement');
+    }
+  };
+
+  const handleEventSaved = () => {
+    loadEvents();
+    setShowAddEventModal(false);
+    setShowEditEventModal(false);
+    setSelectedEvent(null);
+    addActivity('alert', 'Événement enregistré');
+  };
+
   // Fonction pour ajouter une nouvelle activité
   const addActivity = (type, message) => {
     try {
@@ -237,6 +291,8 @@ const AdminDashboard = () => {
     loadNotifications();
     // Charger les messages depuis localStorage
     loadMessages();
+    // Charger les événements
+    loadEvents();
   }, []);
 
   // Mettre à jour les temps relatifs toutes les minutes
@@ -800,6 +856,7 @@ const AdminDashboard = () => {
     { id: 'subjects', label: 'Classes', icon: BookOpen },
     { id: 'matieres', label: 'Matières', icon: BookOpen },
     { id: 'salles', label: 'Salles', icon: Building2 },
+    { id: 'events', label: 'Événements', icon: FileText },
     { id: 'reports', label: 'Rapports', icon: FileText },
     { id: 'messages', label: 'Messagerie', icon: Mail },
     { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -967,7 +1024,7 @@ const AdminDashboard = () => {
     ];
 
     // Étudiants par département
-    const studentsByDeptData = departmentsData.map(dept => ({
+    const _studentsByDeptData = departmentsData.map(dept => ({
       label: dept.nom,
       value: studentsData.filter(s => {
         // Trouver la classe de l'étudiant et son département via spécialité
@@ -984,7 +1041,7 @@ const AdminDashboard = () => {
     })).filter(item => item.value > 0);
 
     // Classes par département
-    const classesByDeptData = departmentsData.map(dept => ({
+    const _classesByDeptData = departmentsData.map(dept => ({
       label: dept.nom,
       value: classesData.filter(c => {
         const specialite = c.specialite;
@@ -1338,6 +1395,125 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // Rendu de la page Événements
+  const renderEvents = () => {
+    // Filtrer les événements selon la recherche
+    const filteredEvents = events.filter(event => {
+      const matchesSearch = 
+        event.titre?.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
+        event.description?.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
+        event.lieu?.toLowerCase().includes(eventSearchTerm.toLowerCase());
+      
+      return matchesSearch;
+    });
+
+    return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-2xl font-bold text-gray-800">Gestion des Événements</h3>
+        <button
+          onClick={() => setShowAddEventModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={20} />
+          Ajouter événement
+        </button>
+      </div>
+
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Rechercher par titre, description ou lieu..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={eventSearchTerm}
+            onChange={(e) => setEventSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="mb-4 text-sm text-gray-600">
+        Affichage de <span className="font-semibold text-gray-800">{filteredEvents.length}</span> événement{filteredEvents.length > 1 ? 's' : ''} sur <span className="font-semibold text-gray-800">{events.length}</span>
+      </div>
+
+      {loadingEvents ? (
+        <div className="flex justify-center py-12">
+          <Loader className="animate-spin text-blue-600" size={40} />
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-600">
+          <AlertCircle size={40} className="mx-auto mb-4" />
+          <p>{error}</p>
+        </div>
+      ) : filteredEvents.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <FileText size={40} className="mx-auto mb-4 text-gray-300" />
+          <p>Aucun événement trouvé</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Titre</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date début</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date fin</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lieu</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredEvents.map((event) => (
+                <tr key={event.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-900">{event.titre}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      event.type === 'conference' ? 'bg-blue-100 text-blue-800' :
+                      event.type === 'journee_pedagogique' ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {event.type === 'conference' ? 'Conférence' :
+                       event.type === 'journee_pedagogique' ? 'Journée pédagogique' :
+                       'Fermeture'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {new Date(event.dateDebut).toLocaleDateString('fr-FR')}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {event.dateFin ? new Date(event.dateFin).toLocaleDateString('fr-FR') : '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{event.lieu || '-'}</td>
+                  <td className="px-6 py-4 text-sm">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditEvent(event)}
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                        title="Modifier"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEvent(event.id)}
+                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                        title="Supprimer"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+    );
+  };
+
   // Rendu de la page Départements
   const renderDepartments = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1468,8 +1644,8 @@ const AdminDashboard = () => {
                   const matchesSearch = !q || (c.nom && c.nom.toLowerCase().includes(q)) || (c.code && c.code.toLowerCase().includes(q));
 
                   // Resolve specialite/niveau from classe or fallback maps
-                  const resolvedSpecialite = c.specialite || classSpecialiteMap.get(String(c.id)) || classSpecialiteMapByName.get(String(c.nom || '').trim()) || null;
-                  const resolvedNiveau = c.niveau || classNiveauMap.get(String(c.id)) || classNiveauMapByName.get(String(c.nom || '').trim()) || null;
+                  const _resolvedSpecialite = c.specialite || classSpecialiteMap.get(String(c.id)) || classSpecialiteMapByName.get(String(c.nom || '').trim()) || null;
+                  const _resolvedNiveau = c.niveau || classNiveauMap.get(String(c.id)) || classNiveauMapByName.get(String(c.nom || '').trim()) || null;
 
                   // Filtre département: disabled — always include
                   const matchesDept = true;
@@ -1485,9 +1661,8 @@ const AdminDashboard = () => {
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filtered.map(classe => {
-                        const resolvedSpecialite = classe.specialite || classSpecialiteMap.get(String(classe.id)) || classSpecialiteMapByName.get(String(classe.nom || '').trim()) || null;
-                        const resolvedNiveau = classe.niveau || classNiveauMap.get(String(classe.id)) || classNiveauMapByName.get(String(classe.nom || '').trim()) || null;
-                        const deptName = resolvedSpecialite?.departement?.nom || resolvedSpecialite?.departement || '';
+                        const _resolvedSpecialite = classe.specialite || classSpecialiteMap.get(String(classe.id)) || classSpecialiteMapByName.get(String(classe.nom || '').trim()) || null;
+                        const _resolvedNiveau = classe.niveau || classNiveauMap.get(String(classe.id)) || classNiveauMapByName.get(String(classe.nom || '').trim()) || null;
                         return (
                         <div key={classe.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                           <div className="flex items-start justify-between mb-4">
@@ -1940,7 +2115,7 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
 
   const renderReports = () => {
     // Étudiants par département
-    const studentsByDeptData = departmentsData.map(dept => ({
+    const _studentsByDeptData = departmentsData.map(dept => ({
       label: dept.nom,
       value: studentsData.filter(s => {
         const classe = classesData.find(c => {
@@ -1956,7 +2131,7 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
     })).filter(item => item.value > 0);
 
     // Classes par département
-    const classesByDeptData = departmentsData.map(dept => ({
+    const _classesByDeptData = departmentsData.map(dept => ({
       label: dept.nom,
       value: classesData.filter(c => {
         const specialite = c.specialite;
@@ -1966,7 +2141,7 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
       }).length
     })).filter(item => item.value > 0);
 
-    const teachersByGradeData = [
+    const _teachersByGradeData = [
       { label: 'Professeur', value: teachersData.filter(t => t.grade === 'Professeur').length },
       { label: 'Maître Assistant', value: teachersData.filter(t => t.grade === 'Maître Assistant').length },
       { label: 'Assistant', value: teachersData.filter(t => t.grade === 'Assistant').length },
@@ -2432,22 +2607,6 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
                 </button>
               </div>
             )}
-
-            {/* Bouton de déconnexion */}
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  if (window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-                    logout();
-                    navigate('/login');
-                  }
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-              >
-                <LogOut size={18} />
-                Se déconnecter
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -2457,7 +2616,7 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
   // Modal de composition de message
   const ComposeMessageModal = ({ onClose, onSend, teachers, students }) => {
     const [to, setTo] = useState('');
-    const [toName, setToName] = useState('');
+    const [_toName, setToName] = useState('');
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
     const [recipientType, setRecipientType] = useState('teacher');
@@ -2655,6 +2814,7 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
       case 'subjects': return renderSubjects();
       case 'matieres': return renderMatieres();
       case 'salles': return renderSalles();
+      case 'events': return renderEvents();
       case 'reports': return renderReports();
       case 'messages': return renderMessages();
       case 'notifications': return renderNotifications();
@@ -2759,11 +2919,11 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
                 )}
               </button>
               <button 
-                onClick={loadDashboardStats}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                onClick={logout}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
               >
-                <TrendingUp size={18} />
-                Actualiser
+                <LogOut size={18} />
+                Déconnexion
               </button>
             </div>
           </div>
@@ -2902,6 +3062,19 @@ ${classesData.map(c => `- ${c.nom}`).join('\n')}
         niveaux={[]}
         classes={classesData}
         teachers={teachersData}
+      />
+
+      <AddEventModal
+        isOpen={showAddEventModal}
+        onClose={() => setShowAddEventModal(false)}
+        onEventAdded={handleEventSaved}
+      />
+
+      <EditEventModal
+        isOpen={showEditEventModal}
+        onClose={() => setShowEditEventModal(false)}
+        onEventUpdated={handleEventSaved}
+        event={selectedEvent}
       />
     </div>
   );

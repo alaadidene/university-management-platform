@@ -2,46 +2,78 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { directorService } from "../services/directorService";
-import "./DirectorDashboard.css";
+import { departementService } from "../services/adminServices";
+import { 
+  Edit,
+  User,
+  LogOut
+} from 'lucide-react';
+
+// Import components for inline rendering
+import MySchedule from './MySchedule';
+import MessagingPage from './MessagingPage';
+import TeacherScheduleViewer from './TeacherScheduleViewer';
+import RoomScheduleViewer from './RoomScheduleViewer';
+
+// Import DirectorSidebar
+import DirectorSidebar from './DirectorSidebar';
 
 const DirectorDashboard = () => {
   const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showProfile, setShowProfile] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [userDepartement, setUserDepartement] = useState(null);
   const [profileData, setProfileData] = useState({
     prenom: user?.prenom || "",
     nom: user?.nom || "",
     email: user?.email || "",
-    telephone: user?.telephone || "",
-    departement: user?.departement || "",
-    specialite: user?.specialite || "",
+    cin: user?.cin || "",
   });
 
   useEffect(() => {
     console.log('🚀 DirectorDashboard useEffect déclenché');
     console.log('👤 Utilisateur:', user);
     loadDashboardData();
-  }, []);
+    loadUserDepartement();
+  }, [user]);
+
+  const loadUserDepartement = async () => {
+    // Essayer d'abord user.departement.id, puis user.departementId
+    const departementId = user?.departement?.id || user?.departementId;
+    
+    if (departementId) {
+      try {
+        console.log('🔄 Chargement du département utilisateur avec ID:', departementId);
+        const departement = await departementService.getById(departementId);
+        console.log('✅ Département chargé:', departement);
+        setUserDepartement(departement);
+      } catch (error) {
+        console.error('❌ Erreur lors du chargement du département:', error);
+        setUserDepartement(null);
+      }
+    } else {
+      console.log('⚠️ Aucun ID de département trouvé pour l\'utilisateur');
+      setUserDepartement(null);
+    }
+  };
 
   const loadDashboardData = async () => {
     console.log('🔄 Chargement des données du dashboard directeur...');
     
     try {
-      // Récupérer les vraies statistiques depuis la base de données
       const stats = await directorService.getStats();
       console.log('✅ Statistiques récupérées:', stats);
 
       const data = {
         title: "Espace Directeur de Département",
         stats: [
-          { label: "Enseignants", value: stats.enseignants.toString(), icon: "👨‍🏫", color: "primary" },
-          { label: "Étudiants", value: stats.etudiants.toString(), icon: "👥", color: "turquoise" },
-          { label: "Classes", value: stats.classes.toString(), icon: "📚", color: "yellow" },
-          { label: "Taux de réussite", value: `${stats.tauxReussite}%`, icon: "📊", color: "primary" },
+          { label: "Enseignants", value: stats.enseignants.toString(), icon: "👨‍🏫", color: "blue" },
+          { label: "Étudiants", value: stats.etudiants.toString(), icon: "👥", color: "green" },
+          { label: "Classes", value: stats.classes.toString(), icon: "📚", color: "purple" },
+          { label: "Taux de réussite", value: `${stats.tauxReussite}%`, icon: "📊", color: "orange" },
         ],
         actions: [
           { label: "👥 Gérer utilisateurs", description: "Administration des comptes utilisateurs", action: "manageUsers" },
@@ -58,14 +90,13 @@ const DirectorDashboard = () => {
       setLoading(false);
     } catch (error) {
       console.error('❌ Erreur lors du chargement des stats:', error);
-      // En cas d'erreur, afficher des données par défaut
       const data = {
         title: "Espace Directeur de Département",
         stats: [
-          { label: "Enseignants", value: "—", icon: "👨‍🏫", color: "primary" },
-          { label: "Étudiants", value: "—", icon: "👥", color: "turquoise" },
-          { label: "Classes", value: "—", icon: "📚", color: "yellow" },
-          { label: "Taux de réussite", value: "—", icon: "📊", color: "primary" },
+          { label: "Enseignants", value: "—", icon: "👨‍🏫", color: "blue" },
+          { label: "Étudiants", value: "—", icon: "👥", color: "green" },
+          { label: "Classes", value: "—", icon: "📚", color: "purple" },
+          { label: "Taux de réussite", value: "—", icon: "📊", color: "orange" },
         ],
         actions: [
           { label: "👥 Gérer utilisateurs", description: "Administration des comptes utilisateurs", action: "manageUsers" },
@@ -86,10 +117,9 @@ const DirectorDashboard = () => {
     setActiveNav(action);
     switch (action) {
       case "dashboard":
-        // Stay on dashboard
         break;
       case "mySchedule":
-        navigate("/my-schedule");
+        // navigate("/my-schedule");
         break;
       case "createSchedule":
         navigate("/schedule-builder");
@@ -98,22 +128,25 @@ const DirectorDashboard = () => {
         navigate("/schedule-viewer");
         break;
       case "teacherSchedules":
-        navigate("/teacher-schedules");
+        // navigate("/teacher-schedules");
         break;
       case "roomSchedules":
-        navigate("/room-schedules");
+        // navigate("/room-schedules");
         break;
       case "manageUsers":
         navigate("/admin");
         break;
       case "manageTeachers":
-        alert("Ouverture de la gestion des enseignants...");
+        navigate("/admin?tab=enseignants");
         break;
       case "manageStudents":
-        alert("Ouverture de la gestion des étudiants...");
+        navigate("/admin?tab=etudiants");
         break;
       case "messaging":
-        navigate('/messagerie');
+        // navigate('/messagerie');
+        break;
+      case "profile":
+        // Le profil s'ouvre dans le contenu principal
         break;
       case "reports":
         alert("Ouverture des rapports...");
@@ -131,7 +164,7 @@ const DirectorDashboard = () => {
 
   const handleProfileUpdate = async () => {
     if (!profileData.prenom || !profileData.nom || !profileData.email) {
-      alert("Veuillez remplir tous les champs obligatoires");
+      // Validation silencieuse - les champs requis sont marqués avec *
       return;
     }
 
@@ -139,372 +172,315 @@ const DirectorDashboard = () => {
       const response = await updateUser({
         nom: profileData.nom,
         prenom: profileData.prenom,
-        cin: user.cin, // CIN ne peut pas être modifié
+        cin: user.cin,
       });
 
       if (response.success) {
-        alert("Profil mis à jour avec succès!");
         setEditingProfile(false);
-        // Mettre à jour les données du profil avec les nouvelles valeurs
         setProfileData({
           ...profileData,
           prenom: response.user.prenom,
           nom: response.user.nom,
         });
+        // Mise à jour réussie - pas d'alert
       } else {
-        alert(response.message || "Erreur lors de la mise à jour du profil");
+        // Erreur silencieuse - l'utilisateur voit que rien ne change
+        console.error("Erreur lors de la mise à jour du profil:", response.message);
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour du profil:", error);
-      alert("Erreur lors de la mise à jour du profil");
+      // Erreur silencieuse
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
-  console.log('🎨 Rendu DirectorDashboard - loading:', loading, 'dashboardData:', dashboardData);
-
-  if (loading) {
-    console.log('⏳ Affichage de l\'écran de chargement');
+  // Rendu de la page Profil
+  const renderProfile = () => {
     return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
-        <p>Chargement de l'espace directeur...</p>
-      </div>
-    );
-  }
-
-  if (!dashboardData) {
-    console.log('❌ Aucune donnée de dashboard disponible');
-    return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner"></div>
-        <p>Erreur de chargement des données...</p>
-      </div>
-    );
-  }
-
-  console.log('✅ Rendu du dashboard avec', dashboardData.actions?.length, 'actions');
-
-  return (
-    <div className="director-dashboard">
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="sidebar-logo">RÉSEAU</div>
-        </div>
-
-        <div className="sidebar-user">
-          <div className="sidebar-user-info">
-            <div className="sidebar-avatar">
-              {user?.prenom?.charAt(0)}{user?.nom?.charAt(0)}
-            </div>
-            <div className="sidebar-user-details">
-              <h3>{user?.prenom} {user?.nom}</h3>
-              <p>Directeur de Département</p>
-            </div>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <div className="sidebar-nav-section">
-            <div className="sidebar-nav-title">Menu Principal</div>
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'dashboard' ? 'active' : ''}`}
-              onClick={() => handleAction('dashboard')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-              <span className="sidebar-nav-label">Tableau de bord</span>
-            </div>
-
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'mySchedule' ? 'active' : ''}`}
-              onClick={() => handleAction('mySchedule')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              <span className="sidebar-nav-label">Mon Emploi du Temps</span>
-            </div>
-          </div>
-
-          <div className="sidebar-nav-section">
-            <div className="sidebar-nav-title">Gestion</div>
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'createSchedule' ? 'active' : ''}`}
-              onClick={() => handleAction('createSchedule')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span className="sidebar-nav-label">Créer emploi du temps</span>
-            </div>
-
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'viewSchedules' ? 'active' : ''}`}
-              onClick={() => handleAction('viewSchedules')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              <span className="sidebar-nav-label">Voir emplois classes</span>
-            </div>
-
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'teacherSchedules' ? 'active' : ''}`}
-              onClick={() => handleAction('teacherSchedules')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span className="sidebar-nav-label">Emplois enseignants</span>
-            </div>
-
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'roomSchedules' ? 'active' : ''}`}
-              onClick={() => handleAction('roomSchedules')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="3" y1="9" x2="21" y2="9"></line>
-                <line x1="9" y1="21" x2="9" y2="9"></line>
-              </svg>
-              <span className="sidebar-nav-label">Emplois salles</span>
-            </div>
-          </div>
-
-          <div className="sidebar-nav-section">
-            <div className="sidebar-nav-title">Gestion</div>
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'manageTeachers' ? 'active' : ''}`}
-              onClick={() => handleAction('manageTeachers')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span className="sidebar-nav-label">Gérer enseignants</span>
-            </div>
-
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'manageStudents' ? 'active' : ''}`}
-              onClick={() => handleAction('manageStudents')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span className="sidebar-nav-label">Gérer étudiants</span>
-            </div>
-          </div>
-
-          <div className="sidebar-nav-section">
-            <div className="sidebar-nav-title">Outils</div>
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'messaging' ? 'active' : ''}`}
-              onClick={() => handleAction('messaging')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <span className="sidebar-nav-label">Messagerie</span>
-            </div>
-
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'reports' ? 'active' : ''}`}
-              onClick={() => handleAction('reports')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-              <span className="sidebar-nav-label">Rapports</span>
-            </div>
-
-            <div 
-              className={`sidebar-nav-item ${activeNav === 'evaluations' ? 'active' : ''}`}
-              onClick={() => handleAction('evaluations')}
-            >
-              <svg className="sidebar-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-              </svg>
-              <span className="sidebar-nav-label">Évaluations</span>
-            </div>
-          </div>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button className="sidebar-logout-btn" onClick={handleLogout}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-            Déconnexion
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="main-content">
-        <header className="main-header">
-          <h1>Tableau de bord</h1>
-          <div className="header-actions">
-            <button className="header-btn profile-btn" onClick={() => setShowProfile(true)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-              Profil
-            </button>
-          </div>
-        </header>
-
-        <main className="main-body">
-          {/* Stats Grid */}
-          <div className="stats-grid">
-            {dashboardData?.stats.map((stat, index) => (
-              <div key={index} className={`stat-card stat-${stat.color}`}>
-                <div className="stat-header">
-                  <span className="stat-icon">{stat.icon}</span>
-                </div>
-                <div className="stat-body">
-                  <div className="stat-value">{stat.value}</div>
-                  <div className="stat-label">{stat.label}</div>
-                </div>
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* En-tête du profil */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
+            <div className="flex items-center gap-6">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center">
+                <User size={48} className="text-blue-600" />
               </div>
-            ))}
-          </div>
-
-          {/* Quick Actions */}
-          <div className="quick-actions">
-            <h2 className="section-title">Actions rapides</h2>
-            <div className="actions-grid">
-              {dashboardData?.actions.map((action, index) => (
-                <div
-                  key={index}
-                  className="action-card"
-                  onClick={() => handleAction(action.action)}
-                >
-                  <div className="action-label">{action.label}</div>
-                  {action.description && (
-                    <div className="action-description">{action.description}</div>
-                  )}
-                </div>
-              ))}
+              <div>
+                <h2 className="text-3xl font-bold">{user?.prenom} {user?.nom}</h2>
+                <p className="text-blue-100 mt-1">Directeur de Département</p>
+                <p className="text-blue-100 text-sm mt-1">{user?.email}</p>
+              </div>
             </div>
           </div>
-        </main>
-      </div>
 
-      {/* Profile Modal */}
-      {showProfile && (
-        <div className="profile-modal">
-          <div className="profile-content">
-            <button
-              className="close-profile"
-              onClick={() => setShowProfile(false)}
-            >
-              ×
-            </button>
-            <h3>Informations du profil</h3>
-            {editingProfile ? (
-              <form className="profile-edit" onSubmit={(e) => { e.preventDefault(); handleProfileUpdate(); }}>
-                <div className="form-group">
-                  <label>Prénom <span className="required">*</span></label>
+          {/* Contenu du profil */}
+          <div className="p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">Informations personnelles</h3>
+              {!editingProfile && (
+                <button
+                  onClick={() => setEditingProfile(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Edit size={18} />
+                  Modifier
+                </button>
+              )}
+            </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nom</label>
                   <input
                     type="text"
-                    value={profileData.prenom}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, prenom: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Nom <span className="required">*</span></label>
-                  <input
-                    type="text"
+                    name="nom"
                     value={profileData.nom}
-                    onChange={(e) =>
-                      setProfileData({ ...profileData, nom: e.target.value })
-                    }
-                    required
+                    onChange={(e) => setProfileData({ ...profileData, nom: e.target.value })}
+                    disabled={!editingProfile}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                    }`}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Email <span className="required">*</span></label>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
+                  <input
+                    type="text"
+                    name="prenom"
+                    value={profileData.prenom}
+                    onChange={(e) => setProfileData({ ...profileData, prenom: e.target.value })}
+                    disabled={!editingProfile}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                   <input
                     type="email"
+                    name="email"
                     value={profileData.email}
-                    disabled
-                    title="L'email ne peut pas être modifié"
+                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                    disabled={!editingProfile}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                    }`}
                   />
                 </div>
-                <div className="profile-actions">
-                  <button type="submit" className="btn-primary">Sauvegarder</button>
-                  <button type="button" className="btn-secondary" onClick={() => setEditingProfile(false)}>
-                    Annuler
-                  </button>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">CIN</label>
+                  <input
+                    type="text"
+                    name="cin"
+                    value={profileData.cin}
+                    onChange={(e) => setProfileData({ ...profileData, cin: e.target.value })}
+                    maxLength="8"
+                    disabled={!editingProfile}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      !editingProfile ? 'bg-gray-50 text-gray-600' : ''
+                    }`}
+                  />
                 </div>
-              </form>
-            ) : (
-              <div className="profile-view">
-                <div className="profile-item">
-                  <span className="profile-label">Prénom:</span>
-                  <span className="profile-value">{user?.prenom}</span>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Département</label>
+                  <input
+                    type="text"
+                    value={userDepartement?.nom || "Chargement..."}
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                  />
                 </div>
-                <div className="profile-item">
-                  <span className="profile-label">Nom:</span>
-                  <span className="profile-value">{user?.nom}</span>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Rôle</label>
+                  <input
+                    type="text"
+                    value="Directeur de Département"
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                  />
                 </div>
-                <div className="profile-item">
-                  <span className="profile-label">Email:</span>
-                  <span className="profile-value">{user?.email}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Département:</span>
-                  <span className="profile-value">{user?.departement?.nom || "Non spécifié"}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">Rôle:</span>
-                  <span className="profile-value">
-                    <span className="badge-role">Directeur de Département</span>
-                  </span>
-                </div>
-                <button className="btn-primary" onClick={() => setEditingProfile(true)}>
-                  Modifier le profil
+              </div>            {editingProfile && (
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleProfileUpdate();
+                  }}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  Enregistrer les modifications
+                </button>
+                <button
+                  onClick={() => setEditingProfile(false)}
+                  className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                >
+                  Annuler
                 </button>
               </div>
             )}
           </div>
         </div>
-      )}
+      </div>
+    );
+  };
+
+  const getStatColorClasses = (color) => {
+    const colors = {
+      blue: "from-blue-500 to-blue-600",
+      green: "from-green-500 to-green-600",
+      purple: "from-purple-500 to-purple-600",
+      orange: "from-orange-500 to-orange-600"
+    };
+    return colors[color] || colors.blue;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement de l'espace directeur...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-red-600">Erreur de chargement des données...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <DirectorSidebar onDashboardAction={handleAction} />
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200 px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">
+                {activeNav === 'dashboard' && 'Tableau de bord'}
+                {activeNav === 'mySchedule' && 'Mon Emploi du Temps'}
+                {activeNav === 'messaging' && 'Messagerie'}
+                {activeNav === 'teacherSchedules' && 'Emplois des Enseignants'}
+                {activeNav === 'roomSchedules' && 'Emplois des Salles'}
+                {activeNav === 'profile' && 'Mon Profil'}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {activeNav === 'dashboard' && 'Espace Directeur de Département'}
+                {activeNav === 'mySchedule' && 'Consultez votre planning hebdomadaire'}
+                {activeNav === 'messaging' && 'Gérez vos messages et communications'}
+                {activeNav === 'teacherSchedules' && 'Consultez les emplois du temps des enseignants'}
+                {activeNav === 'roomSchedules' && 'Consultez les emplois du temps des salles'}
+                {activeNav === 'profile' && 'Gérez vos informations personnelles'}
+              </p>
+            </div>
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <LogOut size={18} />
+              Déconnexion
+            </button>
+          </div>
+        </header>
+
+        {/* Main Body */}
+        <main className="p-8">
+          {activeNav === 'dashboard' && (
+            <>
+              {/* Stats Grid with Charts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {dashboardData?.stats.map((stat, index) => {
+              // Calculer un pourcentage pour la barre de progression (simule une tendance)
+              const percentage = stat.label === "Taux de réussite" 
+                ? parseInt(stat.value) 
+                : Math.min(95, parseInt(stat.value) * 2 || 75);
+              
+              return (
+                <div
+                  key={index}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all group"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm font-medium text-gray-600">{stat.label}</div>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-green-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                      +12%
+                    </div>
+                  </div>
+
+                  {/* Valeur principale */}
+                  <div className="mb-4">
+                    <div className="text-4xl font-bold text-gray-900 mb-1">
+                      {stat.value}
+                    </div>
+                  </div>
+
+                  {/* Barre de progression */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                      <span>Progression</span>
+                      <span className="font-semibold">{percentage}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full bg-gradient-to-r ${getStatColorClasses(stat.color)} transition-all duration-1000 rounded-full`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Mini graphique sparkline */}
+                  <div className="flex items-end justify-between h-8 gap-1">
+                    {[65, 70, 68, 75, 80, 78, 85, 90, 88, percentage].map((height, i) => (
+                      <div 
+                        key={i}
+                        className={`flex-1 bg-gradient-to-t ${getStatColorClasses(stat.color)} rounded-t opacity-30 hover:opacity-60 transition-all`}
+                        style={{ height: `${(height / 100) * 32}px` }}
+                      ></div>
+                    ))}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${getStatColorClasses(stat.color)}`}></div>
+                      Actif
+                    </span>
+                    <span>Mis à jour</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+            </>
+          )}
+
+          {activeNav === 'mySchedule' && <MySchedule />}
+          {activeNav === 'messaging' && <MessagingPage />}
+          {activeNav === 'teacherSchedules' && <TeacherScheduleViewer />}
+          {activeNav === 'roomSchedules' && <RoomScheduleViewer />}
+          {activeNav === 'profile' && renderProfile()}
+        </main>
+      </div>
     </div>
   );
 };

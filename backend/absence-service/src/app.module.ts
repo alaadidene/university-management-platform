@@ -6,6 +6,7 @@ import { AbsenceModule } from './absence/absence.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './auth/jwt.strategy';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { JwtStrategy } from './auth/jwt.strategy';
       synchronize: false
     }),
     AbsenceModule,
+    AttendanceModule,
   ],
   providers: [JwtStrategy],
 })

@@ -51,6 +51,36 @@ const NotesPage = () => {
     return 'bg-red-100 text-red-700';
   };
 
+  const downloadNotes = () => {
+    const moyenne = calculateMoyenne();
+    const modulesValides = notes.filter(n => n.note >= 10).length;
+    
+    // Créer le contenu CSV
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "RELEVE DE NOTES\n";
+    csvContent += `Etudiant: ${user?.prenom || ''} ${user?.nom || ''}\n`;
+    csvContent += `Semestre: ${semestre}\n`;
+    csvContent += `Date: ${new Date().toLocaleDateString('fr-FR')}\n\n`;
+    csvContent += "Matière,Enseignant,Note,Coefficient,Date,Statut\n";
+    
+    notes.forEach(note => {
+      csvContent += `"${note.matiere}","${note.enseignant}",${note.note},${note.coef},"${new Date(note.date).toLocaleDateString('fr-FR')}","${note.status}"\n`;
+    });
+    
+    csvContent += `\nMoyenne Générale:,${moyenne}/20\n`;
+    csvContent += `Modules Validés:,${modulesValides}/${notes.length}\n`;
+    csvContent += `Taux de Réussite:,${((modulesValides / notes.length) * 100).toFixed(0)}%\n`;
+    
+    // Créer le lien de téléchargement
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `releve_notes_semestre${semestre}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -135,7 +165,10 @@ const NotesPage = () => {
               <option value={1}>Semestre 1</option>
               <option value={2}>Semestre 2</option>
             </select>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button 
+              onClick={downloadNotes}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
               <Download className="w-4 h-4" />
               Télécharger
             </button>

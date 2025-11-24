@@ -213,7 +213,7 @@ const ScheduleViewer = () => {
 
   return (
     <div className="schedule-viewer">
-      <header className="viewer-header">
+      <header className="schedule-header">
         <div className="header-left">
           <button 
             className="back-btn"

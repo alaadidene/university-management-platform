@@ -1,138 +1,89 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import "./AdminPanel.css";
+import DirectorSidebar from "./DirectorSidebar";
+import { 
+  Users, 
+  Search, 
+  UserCheck,
+} from "lucide-react";
 import { safeDisplay } from "../utils/display";
 
 const AdminPanel = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "enseignants");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddUser, setShowAddUser] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
 
-  // Nouveau formulaire utilisateur
-  const [newUser, setNewUser] = useState({
-    prenom: "",
-    nom: "",
-    email: "",
-    telephone: "",
-    departement: "",
-    role: "etudiant",
-  });
-
   useEffect(() => {
-    // Vérifier les permissions
     if (user?.role !== "directeur_departement") {
       navigate("/dashboard");
       return;
     }
-
     loadUsers();
-  }, [user, navigate]);
+  }, [user, navigate, activeTab]);
 
   const loadUsers = async () => {
-    // Simulation du chargement des utilisateurs depuis l'API
-    setTimeout(() => {
-      // Liste vide au départ - les utilisateurs seront ajoutés via l'interface
-      setUsers([]);
-      setLoading(false);
-    }, 500);
-  };
-
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = `${user.prenom} ${user.nom} ${user.email}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === "all" || user.role === filterRole;
-    return matchesSearch && matchesRole;
-  });
-
-  const handleAddUser = async () => {
-    if (!newUser.prenom || !newUser.nom || !newUser.email) {
-      alert("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
-
     try {
-      // Simulation d'ajout d'utilisateur
-      const userToAdd = {
-        ...newUser,
-        id: users.length + 1,
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       };
 
-      setUsers([...users, userToAdd]);
-      setNewUser({
-        prenom: "",
-        nom: "",
-        email: "",
-        telephone: "",
-        departement: "",
-        role: "etudiant",
-      });
-      setShowAddUser(false);
-      alert("Utilisateur ajouté avec succès!");
-    } catch (error) {
-      alert("Erreur lors de l'ajout de l'utilisateur");
-    }
-  };
+      if (activeTab === "enseignants") {
+        const res = await fetch("http://localhost:3002/enseignant", { headers });
+        const enseignants = await res.json();
 
-  const handleEditUser = (user) => {
-    setEditingUser(user);
-    setNewUser({
-      prenom: user.prenom,
-      nom: user.nom,
-      email: user.email,
-      telephone: user.telephone || "",
-      // Si departement est un objet, on utilise son nom
-      departement: typeof user.departement === 'object' ? (user.departement?.nom || "") : (user.departement || ""),
-      role: user.role,
-    });
-  };
+        setUsers(
+          enseignants.map((e) => ({
+            id: e.id,
+            prenom: e.prenom,
+            nom: e.nom,
+            email: e.email,
+            telephone: e.telephone || "",
+            departement: e.departement?.nom || "",
+            role: e.role || "enseignant",
+            cin: e.cin,
+          }))
+        );
+      } else if (activeTab === "etudiants") {
+        const res = await fetch("http://localhost:3002/etudiants", { headers });
+        const etudiants = await res.json();
 
-  const handleUpdateUser = async () => {
-    if (!newUser.prenom || !newUser.nom || !newUser.email) {
-      alert("Veuillez remplir tous les champs obligatoires");
-      return;
-    }
-
-    try {
-      // Simulation de mise à jour
-      const updatedUsers = users.map((u) =>
-        u.id === editingUser.id ? { ...u, ...newUser } : u,
-      );
-      setUsers(updatedUsers);
-      setEditingUser(null);
-      setNewUser({
-        prenom: "",
-        nom: "",
-        email: "",
-        telephone: "",
-        departement: "",
-        role: "etudiant",
-      });
-      alert("Utilisateur modifié avec succès!");
-    } catch (error) {
-      alert("Erreur lors de la modification de l'utilisateur");
-    }
-  };
-
-  const handleDeleteUser = async (userId) => {
-    if (
-      window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")
-    ) {
-      try {
-        // Simulation de suppression
-        setUsers(users.filter((u) => u.id !== userId));
-        alert("Utilisateur supprimé avec succès!");
-      } catch (error) {
-        alert("Erreur lors de la suppression de l'utilisateur");
+        setUsers(
+          etudiants.map((e) => ({
+            id: e.id,
+            prenom: e.prenom,
+            nom: e.nom,
+            email: e.email,
+            telephone: e.telephone || "",
+            departement: e.classe?.specialite?.departement?.nom || "",
+            role: "etudiant",
+            cin: e.cin,
+            classe: e.classe?.nom || "",
+          }))
+        );
       }
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors du chargement des utilisateurs.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch =
+      `${u.prenom} ${u.nom} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = filterRole === "all" || u.role === filterRole;
+    return matchesSearch && matchesRole;
+  });
 
   const handleLogout = () => {
     logout();
@@ -140,233 +91,192 @@ const AdminPanel = () => {
   };
 
   const getRoleLabel = (role) => {
-    const labels = {
+    const map = {
       etudiant: "Étudiant",
       enseignant: "Enseignant",
       directeur_departement: "Directeur de Département",
       administratif: "Administratif",
     };
-    return labels[role] || role;
+    return map[role] || role;
+  };
+
+  const getRoleBadgeColor = (role) => {
+    const map = {
+      etudiant: "bg-blue-100 text-blue-700",
+      enseignant: "bg-green-100 text-green-700",
+      directeur_departement: "bg-purple-100 text-purple-700",
+      administratif: "bg-orange-100 text-orange-700",
+    };
+    return map[role] || "bg-gray-100 text-gray-700";
   };
 
   if (loading) {
     return (
-      <div className="admin-loading">
-        <div className="loading-spinner"></div>
-        <p>Chargement du panneau d'administration...</p>
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement du panneau d'administration...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="admin-panel">
-      <header className="admin-header">
-        <div className="header-left">
-          <h1>Panneau d'Administration</h1>
-          <p>Gestion des utilisateurs</p>
-        </div>
-        <div className="header-right">
-          <button className="back-btn" onClick={() => navigate("/dashboard")}>
-            Retour au tableau de bord
-          </button>
-          <button className="logout-btn" onClick={handleLogout}>
-            Déconnexion
-          </button>
-        </div>
-      </header>
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <DirectorSidebar />
 
-      <div className="admin-content">
-        <div className="admin-controls">
-          <div className="search-section">
-            <input
-              type="text"
-              placeholder="Rechercher un utilisateur..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Tous les rôles</option>
-              <option value="etudiant">Étudiants</option>
-              <option value="enseignant">Enseignants</option>
-              <option value="administratif">Administratifs</option>
-              <option value="directeur_departement">Directeurs</option>
-            </select>
-          </div>
-          <button className="add-user-btn" onClick={() => setShowAddUser(true)}>
-            Ajouter un utilisateur
-          </button>
-        </div>
-
-        {(showAddUser || editingUser) && (
-          <div className="user-modal">
-            <div className="modal-content">
-              <h3>
-                {editingUser
-                  ? "Modifier l'utilisateur"
-                  : "Ajouter un utilisateur"}
-              </h3>
-              <div className="user-form">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Prénom *</label>
-                    <input
-                      type="text"
-                      value={newUser.prenom}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, prenom: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Nom *</label>
-                    <input
-                      type="text"
-                      value={newUser.nom}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, nom: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Email *</label>
-                  <input
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, email: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Téléphone</label>
-                    <input
-                      type="tel"
-                      value={newUser.telephone}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, telephone: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Département</label>
-                    <input
-                      type="text"
-                      value={typeof newUser.departement === 'object' ? (newUser.departement?.nom || '') : (newUser.departement || '')}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, departement: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Rôle</label>
-                  <select
-                    value={newUser.role}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, role: e.target.value })
-                    }
-                  >
-                    <option value="etudiant">Étudiant</option>
-                    <option value="enseignant">Enseignant</option>
-                    <option value="administratif">Administratif</option>
-                    <option value="directeur_departement">
-                      Directeur de Département
-                    </option>
-                  </select>
-                </div>
-                <div className="form-actions">
-                  <button
-                    onClick={editingUser ? handleUpdateUser : handleAddUser}
-                    className="save-btn"
-                  >
-                    {editingUser ? "Modifier" : "Ajouter"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddUser(false);
-                      setEditingUser(null);
-                      setNewUser({
-                        prenom: "",
-                        nom: "",
-                        email: "",
-                        telephone: "",
-                        departement: "",
-                        role: "etudiant",
-                      });
-                    }}
-                    className="cancel-btn"
-                  >
-                    Annuler
-                  </button>
-                </div>
-              </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* HEADER */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="px-8 py-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <Users className="text-blue-600" size={28} />
+                Panneau d'Administration
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">Gestion des utilisateurs</p>
             </div>
           </div>
-        )}
+        </header>
 
-        <div className="users-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Nom complet</th>
-                <th>Email</th>
-                <th>Téléphone</th>
-                <th>Département</th>
-                <th>Rôle</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    {user.prenom} {user.nom}
-                  </td>
-                  <td>{user.email}</td>
-                  <td>{user.telephone || "-"}</td>
-                  <td>{safeDisplay(user.departement, "-")}</td>
-                  <td>
-                    <span className={`role-badge role-${user.role}`}>
-                      {getRoleLabel(user.role)}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        onClick={() => handleEditUser(user)}
-                        className="edit-btn"
-                        title="Modifier"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="delete-btn"
-                        title="Supprimer"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </td>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">      {/* MAIN CONTENT */}
+      <div className="max-w-7xl mx-auto px-8 py-8">
+
+        {/* TABS */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => {
+                setActiveTab("enseignants");
+                setSearchParams({ tab: "enseignants" });
+              }}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === "enseignants"
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              👨‍🏫 Enseignants
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("etudiants");
+                setSearchParams({ tab: "etudiants" });
+              }}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === "etudiants"
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              👨‍🎓 Étudiants
+            </button>
+          </div>
+        </div>
+
+        {/* FILTERS */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+
+            {/* Search */}
+            <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Rechercher un utilisateur..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Filter Role */}
+              <select
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+                className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-blue-500"
+              >
+                <option value="all">Tous les rôles</option>
+                <option value="etudiant">Étudiants</option>
+                <option value="enseignant">Enseignants</option>
+                <option value="administratif">Administratifs</option>
+                <option value="directeur_departement">Directeurs</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        {/* TABLE */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Nom complet</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Email</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Téléphone</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Département</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Rôle</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody className="divide-y divide-gray-200">
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-blue-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-600">
+                          {user.prenom?.charAt(0)}
+                          {user.nom?.charAt(0)}
+                        </div>
+                        <div className="font-medium text-gray-900">
+                          {user.prenom} {user.nom}
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{user.telephone || "-"}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {safeDisplay(user.departement, "-")}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getRoleBadgeColor(
+                          user.role
+                        )}`}
+                      >
+                        {getRoleLabel(user.role)}
+                      </span>
+                    </td>
+
+                    {/* Actions supprimées */}
+                    <td className="px-6 py-4 text-center text-gray-400">-</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
           {filteredUsers.length === 0 && (
-            <div className="no-results">
-              <p>Aucun utilisateur trouvé</p>
+            <div className="text-center py-12">
+              <UserCheck size={48} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500 font-medium">Aucun utilisateur trouvé</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Aucun utilisateur correspondant aux filtres.
+              </p>
             </div>
           )}
+        </div>
+
+      </div>
         </div>
       </div>
     </div>

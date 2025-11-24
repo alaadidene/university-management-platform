@@ -5,22 +5,22 @@ export class Message {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   senderEmail: string;
 
-  @Column()
+  @Column({ nullable: true })
   senderRole: string; // 'etudiant', 'enseignant', 'administratif', 'directeur_departement'
 
-  @Column()
+  @Column({ nullable: true })
   receiverEmail: string;
 
-  @Column()
+  @Column({ nullable: true })
   receiverRole: string;
 
-  @Column()
+  @Column({ nullable: true })
   subject: string;
 
-  @Column('text')
+  @Column('text', { nullable: true })
   content: string;
 
   @Column({ default: false })

@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 
 import { UtilisateurModule } from './utilisateur/utilisateur.module';
-import { AuthModule } from './auth/auth.module'; 
+import { AuthModule } from './auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
@@ -17,10 +17,10 @@ import { MailerModule } from '@nestjs-modules/mailer';
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'university_db',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,   // DEV only
+      synchronize: true, // DEV only
       logging: true,
     }),
-    
+
     MailerModule.forRoot({
       transport: {
         host: process.env.MAIL_HOST,
@@ -30,6 +30,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
           user: process.env.MAIL_USER,
           pass: process.env.MAIL_PASS,
         },
+        logger: false, // Désactiver les logs du transporter
       },
       defaults: {
         from: '"University Platform" <no-reply@university.com>',
@@ -37,7 +38,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
     }),
 
     UtilisateurModule,
-    AuthModule,            
+    AuthModule,
   ],
 })
 export class AppModule {}

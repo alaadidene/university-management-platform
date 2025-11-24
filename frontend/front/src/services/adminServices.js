@@ -427,3 +427,56 @@ matiereService.delete = async (id) => {
     return { success: false, message: error.response?.data?.message || error.message };
   }
 };
+
+// ==================== ÉVÉNEMENTS ====================
+export const evenementService = {
+  getAll: async () => {
+    try {
+      const response = await adminApi.get('/evenements');
+      return response.data;
+    } catch (error) {
+      console.error('Erreur evenementService.getAll:', error);
+      return [];
+    }
+  },
+
+  getById: async (id) => {
+    try {
+      const response = await adminApi.get(`/evenements/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erreur evenementService.getById:', error);
+      return null;
+    }
+  },
+
+  create: async (data) => {
+    try {
+      const response = await adminApi.post('/evenements', data);
+      return response.data;
+    } catch (error) {
+      console.error('Erreur evenementService.create:', error);
+      throw error;
+    }
+  },
+
+  update: async (id, data) => {
+    try {
+      const response = await adminApi.patch(`/evenements/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Erreur evenementService.update:', error);
+      throw error;
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      await adminApi.delete(`/evenements/${id}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Erreur evenementService.delete:', error);
+      return { success: false, message: error.response?.data?.message || error.message };
+    }
+  }
+};
